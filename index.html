@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>后室 · Level 0 2D</title>
+    <style>
+        /* ===== 全局风格 ===== */
+        * {
+            box-sizing: border-box;
+            font-family: 'Courier New', 'Segoe UI', monospace;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #0b0808;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: radial-gradient(circle at 20% 30%, #1a1a0a 0%, #0a0805 90%);
+            padding: 16px;
+            overflow-x: hidden;
+        }
+        .game-container {
+            max-width: 750px;
+            width: 100%;
+            background: #1c1810;
+            padding: 20px 16px 24px;
+            border-radius: 40px 12px 40px 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 0 1px #5f4a2e;
+            border: 2px solid #4a3a1e;
+            transition: all 0.2s;
+            position: relative;
+            z-index: 1;
+        }
+        .title {
+            text-align: center;
+            font-size: 2.0rem;
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: #d4c48a;
+            text-shadow: 0 0 6px #aa8a3a, 0 0 20px #3f2a0e;
+            margin-top: -4px;
+            margin-bottom: 4px;
+            word-break: break-word;
+            background: #1f1a0c;
+            padding: 4px 0;
+            border-radius: 60px;
+            border-left: 3px solid #7a6a2a;
+            border-right: 3px solid #7a6a2a;
+            position: relative;
+            z-index: 1;
+            font-size: clamp(1.4rem, 5vw, 2.2rem);
+        }
+        .sub {
+            text-align: center;
+            color: #ac9a68;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            border-top: 1px dashed #5a4a2e;
+            border-bottom: 1px dashed #5a4a2e;
+            padding: 6px 0;
+            margin: 6px 0 12px 0;
+            background: #1a1508;
+            position: relative;
+            z-index: 1;
+        }
+        .maze-wrapper {
+            background: #0e0a07;
+            padding: 12px 8px;
+            border-radius: 30px 6px 30px 6px;
+            box-shadow: inset 0 0 20px #0a0803, 0 6px 0 #2f1a12;
+            margin: 8px 0 14px;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            background: #1a1508;
+            border-radius: 20px;
+            box-shadow: 0 0 0 2px #3a2a16, 0 0 0 4px #1f1508;
+            image-rendering: pixelated;
+            margin: 0 auto;
+            cursor: pointer;
+            touch-action: none;
+            position: relative;
+            z-index: 1;
+        }
+        .status-panel {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: #1f1a0f;
+            padding: 8px 12px;
+            border-radius: 60px;
+            margin: 10px 0 14px;
+            border: 1px solid #5a4a2a;
+            color: #e6d4aa;
+            font-size: 0.85rem;
+            gap: 6px;
+            position: relative;
+            z-index: 1;
+        }
+        .badge {
+            background: #2b2313;
+            padding: 3px 12px;
+            border-radius: 40px;
+            border-left: 3px solid #b49a4e;
+            font-weight: bold;
+            color: #efddbb;
+            box-shadow: inset 0 0 8px #1a1408;
+            font-size: 0.8rem;
+        }
+        .badge span {
+            color: #f7e7b0;
+            font-size: 1rem;
+        }
+        .badge.danger {
+            border-left-color: #cc3333;
+            color: #ff6666;
+            animation: pulseDanger 0.8s infinite alternate;
+        }
+        .badge.sideways {
+            border-left-color: #66aacc;
+            color: #88ddff;
+            animation: pulseSideways 0.6s infinite alternate;
+        }
+        .badge.sprinting {
+            border-left-color: #ffaa44;
+            color: #ffcc66;
+            animation: pulseSprint 0.4s infinite alternate;
+        }
+        @keyframes pulseDanger {
+            from { box-shadow: inset 0 0 8px #1a1408; }
+            to { box-shadow: inset 0 0 20px #cc3333; }
+        }
+        @keyframes pulseSideways {
+            from { box-shadow: inset 0 0 8px #1a1408; }
+            to { box-shadow: inset 0 0 20px #66aacc; }
+        }
+        @keyframes pulseSprint {
+            from { box-shadow: inset 0 0 8px #1a1408; }
+            to { box-shadow: inset 0 0 25px #ffaa44; }
+        }
+        .reset-btn {
+            background: #2f1a12;
+            border: none;
+            color: #e2c9a2;
+            padding: 4px 16px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 0 #170c08;
+            transition: 0.07s;
+            cursor: pointer;
+            border: 1px solid #7a5a34;
+            letter-spacing: 1px;
+        }
+        .reset-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        .rule-box {
+            background: #1a150a;
+            padding: 10px 14px;
+            border-radius: 24px 6px 24px 6px;
+            border-left: 6px solid #8a7a32;
+            margin: 12px 0 16px;
+            color: #c9b898;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            box-shadow: inset 0 0 16px #0d0805;
+            position: relative;
+            z-index: 1;
+        }
+        .rule-box strong {
+            color: #ebd9b2;
+        }
+        .rule-box .danger-text {
+            color: #ff6666;
+            font-weight: bold;
+        }
+        .rule-box .side-text {
+            color: #66ccff;
+            font-weight: bold;
+        }
+        .rule-box .sprint-text {
+            color: #ffaa44;
+            font-weight: bold;
+        }
+        .puzzle-area {
+            background: #1b150a;
+            padding: 14px 12px 16px;
+            border-radius: 30px 6px 30px 6px;
+            border: 1px solid #5a4a28;
+            margin-top: 6px;
+            position: relative;
+            z-index: 1;
+        }
+        .input-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 4px 0 8px;
+        }
+        .input-group label {
+            color: #dbccac;
+            font-weight: bold;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+        .input-group input {
+            background: #0e0a06;
+            border: 2px solid #4a3a20;
+            padding: 10px 16px;
+            border-radius: 60px;
+            font-size: 0.95rem;
+            color: #f0e0ca;
+            width: 120px;
+            text-align: center;
+            outline: none;
+            transition: 0.2s;
+            font-weight: bold;
+        }
+        .input-group input:focus {
+            border-color: #b49a58;
+            box-shadow: 0 0 14px #8a7a3e;
+            background: #1b1508;
+        }
+        .input-group input::placeholder {
+            color: #7a6a4a;
+            font-weight: normal;
+        }
+        .action-btn {
+            background: #3f2a1a;
+            border: none;
+            color: #f7e8d1;
+            font-size: 1rem;
+            padding: 8px 22px;
+            border-radius: 60px;
+            font-weight: bold;
+            border-bottom: 5px solid #1f0f08;
+            transition: 0.07s;
+            cursor: pointer;
+            letter-spacing: 2px;
+            box-shadow: 0 0 10px #2d1a0b;
+            border: 1px solid #7a5a34;
+        }
+        .action-btn:active {
+            transform: translateY(4px);
+            border-bottom-width: 2px;
+        }
+        .feedback {
+            margin-top: 14px;
+            padding: 10px 8px;
+            border-radius: 60px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1rem;
+            background: #1a150a;
+            border: 1px solid #5a4a2a;
+            min-height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #d6c6a2;
+            transition: 0.2s;
+            position: relative;
+            z-index: 1;
+        }
+        .feedback.correct {
+            background: #1f2a1a;
+            border-color: #6a8a4a;
+            color: #cce0b0;
+            box-shadow: 0 0 20px #2e5a1e;
+        }
+        .feedback.wrong {
+            background: #3d1c14;
+            border-color: #b34f34;
+            color: #f7b096;
+            box-shadow: 0 0 20px #732b16;
+        }
+        .feedback.levelup {
+            background: #2a2a1a;
+            border-color: #c4b06a;
+            color: #f7e8b0;
+            box-shadow: 0 0 30px #8a7a3e;
+            animation: glow 1s ease-in-out infinite alternate;
+        }
+        .feedback.danger {
+            background: #2a0a0a;
+            border-color: #cc3333;
+            color: #ff6666;
+            box-shadow: 0 0 30px #cc3333;
+            animation: pulseDanger 0.5s infinite alternate;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 20px #8a7a3e; }
+            to { box-shadow: 0 0 50px #c4b06a; }
+        }
+
+        /* ===== 体力条样式 ===== */
+        .stamina-bar-container {
+            background: #1a150a;
+            border-radius: 40px;
+            padding: 4px 10px;
+            border: 1px solid #4a3a20;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 80px;
+            flex: 1;
+            max-width: 140px;
+        }
+        .stamina-bar-container .stamina-label {
+            color: #ac9a68;
+            font-size: 0.7rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            min-width: 16px;
+        }
+        .stamina-bar-track {
+            flex: 1;
+            height: 8px;
+            background: #0a0805;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #3a2a18;
+            position: relative;
+        }
+        .stamina-bar-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #88cc44, #ffcc44);
+            border-radius: 20px;
+            transition: width 0.1s ease;
+        }
+        .stamina-bar-fill.low {
+            background: linear-gradient(90deg, #cc4444, #ff6644);
+        }
+
+        /* ===== 突脸动画遮罩 ===== */
+        .jumpscare-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+            animation: jumpscareFlash 0.15s ease-out;
+        }
+        .jumpscare-overlay.active {
+            display: flex;
+        }
+
+        .jumpscare-image-container {
+            position: relative;
+            image-rendering: pixelated;
+            width: 80vmin;
+            max-width: 500px;
+            aspect-ratio: 4 / 3;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 80px rgba(200, 0, 0, 0.3), 0 0 200px rgba(200, 0, 0, 0.1);
+        }
+
+        .jumpscare-image-container canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            image-rendering: pixelated;
+            border-radius: 8px;
+        }
+
+        .jumpscare-image-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.3) 2px,
+                rgba(0, 0, 0, 0.3) 4px
+            );
+            pointer-events: none;
+            border-radius: 8px;
+        }
+
+        .jumpscare-image-container.pixel-shake {
+            animation: pixelShake 0.08s infinite alternate;
+        }
+
+        @keyframes pixelShake {
+            0% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(-3px, 2px) scale(1.02); }
+            50% { transform: translate(3px, -2px) scale(0.98); }
+            75% { transform: translate(-2px, 3px) scale(1.01); }
+            100% { transform: translate(2px, -3px) scale(0.99); }
+        }
+
+        @keyframes jumpscareFlash {
+            0% { background: rgba(255, 0, 0, 0.9); }
+            20% { background: rgba(200, 0, 0, 0.6); }
+            100% { background: rgba(0, 0, 0, 0.95); }
+        }
+
+        .jumpscare-text {
+            color: #ff2222;
+            font-size: 3rem;
+            font-weight: bold;
+            text-shadow: 0 0 40px #ff0000, 0 0 80px #cc0000, 0 0 120px #880000;
+            margin-top: 16px;
+            animation: textGlitch 0.15s infinite alternate;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 12px;
+            text-transform: uppercase;
+        }
+
+        .jumpscare-sub {
+            color: #884444;
+            font-size: 0.9rem;
+            margin-top: 6px;
+            opacity: 0.6;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 4px;
+        }
+
+        .jumpscare-overlay .restart-btn {
+            margin-top: 20px;
+            background: #331111;
+            border: 2px solid #ff3333;
+            color: #ff6666;
+            padding: 10px 32px;
+            border-radius: 40px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+        .jumpscare-overlay .restart-btn:hover {
+            background: #661111;
+            transform: scale(1.05);
+            box-shadow: 0 0 40px #ff3333;
+        }
+
+        @keyframes textGlitch {
+            0% { transform: skewX(0deg) scale(1); opacity: 1; }
+            25% { transform: skewX(3deg) scale(1.02); opacity: 0.8; }
+            50% { transform: skewX(-3deg) scale(0.98); opacity: 1; }
+            75% { transform: skewX(2deg) scale(1.01); opacity: 0.9; }
+            100% { transform: skewX(-2deg) scale(0.99); opacity: 1; }
+        }
+
+        .footnote {
+            text-align: right;
+            color: #5f4a32;
+            font-size: 0.6rem;
+            margin-top: 8px;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
+        }
+        @media (max-width: 480px) {
+            .game-container { padding: 12px 10px 16px; }
+            .title { font-size: 1.4rem; letter-spacing: 2px; }
+            .input-group input { width: 80px; padding: 8px 10px; font-size: 0.85rem; }
+            .action-btn { padding: 6px 16px; font-size: 0.85rem; }
+            .badge { font-size: 0.7rem; padding: 2px 8px; }
+            .status-panel { padding: 6px 10px; gap: 4px; }
+            .stamina-bar-container { min-width: 60px; max-width: 100px; }
+            .jumpscare-text { font-size: 2rem; letter-spacing: 6px; }
+            .jumpscare-image-container { width: 90vmin; }
+            .rule-box { font-size: 0.75rem; padding: 8px 10px; }
+            .feedback { font-size: 0.85rem; min-height: 2.5rem; padding: 8px 6px; }
+        }
+        @media (max-width: 380px) {
+            .game-container { padding: 8px 6px 12px; }
+            .title { font-size: 1.2rem; }
+            .maze-wrapper { padding: 8px 4px; }
+            .badge { font-size: 0.6rem; padding: 2px 6px; }
+            .badge span { font-size: 0.8rem; }
+            .stamina-bar-container { min-width: 50px; max-width: 80px; }
+            .input-group input { width: 60px; padding: 6px 8px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== 突脸动画遮罩 ===== -->
+    <div class="jumpscare-overlay" id="jumpscareOverlay">
+        <div class="jumpscare-image-container pixel-shake" id="jumpscareImageContainer">
+            <canvas id="jumpscareCanvas" width="400" height="300"></canvas>
+        </div>
+        <div class="jumpscare-text">☠ 你 死 了 ☠</div>
+        <div class="jumpscare-sub">后室吞噬了你</div>
+        <button class="restart-btn" id="jumpscareRestart">⟳ 重新进入 Level 0</button>
+    </div>
+
+    <div class="game-container">
+        <!-- ===== 游戏标题 ===== -->
+        <div class="title">🏚️ 后室 · Level 0</div>
+        <div class="sub">🟡 随机迷宫 · 每次都不一样</div>
+
+        <!-- ===== 迷宫画布 ===== -->
+        <div class="maze-wrapper">
+            <canvas id="mazeCanvas"></canvas>
+        </div>
+
+        <!-- ===== 状态栏 ===== -->
+        <div class="status-panel">
+            <div class="badge">🗝️ <span id="keyStatus">❌</span></div>
+            <div class="badge">🚪 <span id="doorStatus">🔒</span></div>
+            <div class="badge" id="entityStatus">👹 <span id="entityAlert">●</span></div>
+            <div class="badge" id="sideStatus">🧍 <span id="sideAlert">●</span></div>
+            <div class="stamina-bar-container">
+                <span class="stamina-label">⚡</span>
+                <div class="stamina-bar-track">
+                    <div class="stamina-bar-fill" id="staminaFill"></div>
+                </div>
+            </div>
+            <button class="reset-btn" id="resetGameBtn">⟳</button>
+        </div>
+
+        <!-- ===== 规则说明 ===== -->
+        <div class="rule-box">
+            <strong>📜 Level 0 档案</strong><br>
+            · <span style="color:#ffaa44;">⚡ 每次进入迷宫都完全不同！</span><br>
+            · 使用 <strong>键盘 WASD / 方向键</strong> 或 <strong>点击黄色地砖</strong> 移动。<br>
+            · 视野是 <strong>圆形范围（半径2格）</strong>，墙壁会遮挡视线。<br>
+            · <span class="sprint-text">按住 Shift 键疾跑</span>（速度 1.8 倍），消耗体力。<br>
+            · <span class="side-text">按 Q / E 键侧身挤过狭窄通道</span>（速度变慢）。<br>
+            · 找到随机生成的 <strong>🗝️ 钥匙</strong>，然后前往随机位置的 <strong>🚪 出口</strong>。<br>
+            · <span class="danger-text">⚠️ 窃皮者也在随机位置！</span> 速度是您的 1.5 倍！<br>
+            · 输入钥匙编号 <strong>7</strong>，进入 <strong>下一层级</strong>！
+        </div>
+
+        <!-- ===== 谜题交互区 ===== -->
+        <div class="puzzle-area">
+            <div class="input-group">
+                <label for="keyInput">🔑 钥匙编号</label>
+                <input type="text" id="keyInput" placeholder="7" maxlength="6" autocomplete="off" value="7">
+                <button class="action-btn" id="submitBtn">🚪 进入下一层</button>
+            </div>
+            <div id="feedbackMessage" class="feedback">🕯️ 在随机生成的黄色迷雾中探索...</div>
+        </div>
+        <div class="footnote">⚡ 后室 · 每次重生都是新的噩梦</div>
+    </div>
+
+    <script>
+        (function() {
+            // ============================================================
+            //  第一部分：迷宫参数
+            // ============================================================
+            const ROWS = 18, COLS = 18;
+
+            // ============================================================
+            //  速度参数
+            // ============================================================
+            const PLAYER_BASE_SPEED = 1.4;
+            const PLAYER_SPRINT_MULTIPLIER = 1.8;
+            const ENTITY_SPEED_MULTIPLIER = 1.5;
+            const PLAYER_SIDEWAYS_SPEED = 0.6;
+
+            const MAX_STAMINA = 100;
+            const STAMINA_DRAIN_RATE = 20;
+            const STAMINA_REGEN_RATE = 8;
+
+            const VIEW_RADIUS = 2;
+            const ENTITY_TRIGGER_RADIUS = 5;
+
+            // ============================================================
+            //  游戏状态变量
+            // ============================================================
+            let maze = [];
+            let playerY = 1;
+            let playerX = 1;
+            let entityY = 1;
+            let entityX = 1;
+            let entityTargetX = 1;
+            let entityTargetY = 1;
+            let keyRow = 1;
+            let keyCol = 1;
+            let doorRow = 1;
+            let doorCol = 1;
+            let isSideways = false;
+            let isSprinting = false;
+            let stamina = MAX_STAMINA;
+            let hasKey = false;
+            let doorOpened = false;
+            let gameWin = false;
+            let gameOver = false;
+            let isChasing = false;
+
+            // ============================================================
+            //  键盘状态
+            // ============================================================
+            const keys = {
+                up: false,
+                down: false,
+                left: false,
+                right: false,
+                shift: false,
+                q: false,
+                e: false
+            };
+
+            // ============================================================
+            //  DOM 元素
+            // ============================================================
+            const canvas = document.getElementById('mazeCanvas');
+            const ctx = canvas.getContext('2d');
+            const keyStatusSpan = document.getElementById('keyStatus');
+            const doorStatusSpan = document.getElementById('doorStatus');
+            const entityAlertSpan = document.getElementById('entityAlert');
+            const entityStatusDiv = document.getElementById('entityStatus');
+            const sideAlertSpan = document.getElementById('sideAlert');
+            const sideStatusDiv = document.getElementById('sideStatus');
+            const staminaFill = document.getElementById('staminaFill');
+            const feedbackDiv = document.getElementById('feedbackMessage');
+            const keyInput = document.getElementById('keyInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const resetBtn = document.getElementById('resetGameBtn');
+            const jumpscareOverlay = document.getElementById('jumpscareOverlay');
+            const jumpscareRestart = document.getElementById('jumpscareRestart');
+            const jumpscareCanvas = document.getElementById('jumpscareCanvas');
+            const jumpscareCtx = jumpscareCanvas.getContext('2d');
+
+            // ============================================================
+            //  画布尺寸管理 - 确保完整显示
+            // ============================================================
+            function resizeCanvas() {
+                const wrapper = canvas.parentElement;
+                const wrapperWidth = wrapper.clientWidth - 16;
+                const size = Math.min(wrapperWidth, 500);
+                canvas.width = size;
+                canvas.height = size;
+                canvas.style.width = size + 'px';
+                canvas.style.height = size + 'px';
+                drawMaze();
+            }
+
+            // ============================================================
+            //  像素化窃皮者
+            // ============================================================
+            function generateSkinStealer() {
+                const w = 400,
+                    h = 300;
+                const imageData = jumpscareCtx.createImageData(w, h);
+                const data = imageData.data;
+                const blockSize = 8;
+
+                const palette = [
+                    [180, 150, 140],
+                    [160, 130, 120],
+                    [200, 170, 160],
+                    [140, 110, 100],
+                    [210, 180, 170],
+                    [170, 140, 130],
+                    [30, 25, 25],
+                    [20, 15, 15],
+                    [10, 10, 10],
+                    [180, 20, 20],
+                    [220, 30, 30],
+                    [150, 15, 15],
+                    [200, 40, 40],
+                    [100, 10, 10],
+                    [190, 180, 170],
+                    [210, 200, 190],
+                    [170, 160, 150],
+                    [80, 10, 10],
+                    [120, 15, 15]
+                ];
+
+                const centerX = w / 2,
+                    centerY = h / 2;
+
+                for (let y = 0; y < h; y += blockSize) {
+                    for (let x = 0; x < w; x += blockSize) {
+                        const nx = (x - centerX) / (w * 0.5);
+                        const ny = (y - centerY) / (h * 0.5);
+
+                        let colorIndex = 0;
+                        const faceEllipse = (nx * nx * 1.6 + ny * ny * 2.2) < 1.0;
+                        const eyeL = (nx + 0.4) * (nx + 0.4) * 2 + (ny - 0.15) * (ny - 0.15) * 4 < 0.6;
+                        const eyeR = (nx - 0.4) * (nx - 0.4) * 2 + (ny - 0.15) * (ny - 0.15) * 4 < 0.6;
+                        const mouth = (ny > 0.35 && ny < 0.55 && Math.abs(nx) < 0.35);
+                        const nose = (Math.abs(nx) < 0.08 && ny > -0.05 && ny < 0.15);
+                        const hair = (ny < -0.55 && Math.abs(nx) < 0.7);
+                        const neck = (ny > 0.7 && ny < 1.0 && Math.abs(nx) < 0.25);
+                        const rot = Math.random() > 0.92 && faceEllipse;
+
+                        if (faceEllipse || neck) {
+                            if (eyeL || eyeR) {
+                                colorIndex = Math.random() > 0.3 ? 6 : 9;
+                                if (Math.random() > 0.85) colorIndex = 11;
+                            } else if (mouth) {
+                                colorIndex = 7;
+                                if (Math.random() > 0.6 && Math.abs(nx) < 0.15) colorIndex = 14;
+                            } else if (nose) {
+                                colorIndex = 2;
+                            } else if (hair) {
+                                colorIndex = 6;
+                            } else if (rot) {
+                                colorIndex = 15 + Math.floor(Math.random() * 2);
+                            } else if (neck) {
+                                colorIndex = 0 + Math.floor(Math.random() * 2);
+                            } else {
+                                const skinVariation = Math.floor(Math.random() * 4);
+                                colorIndex = skinVariation;
+                                if (Math.random() > 0.85) colorIndex = 14;
+                            }
+                        } else if (ny < -0.6 && Math.abs(nx) > 0.7) {
+                            colorIndex = 6 + Math.floor(Math.random() * 2);
+                        } else {
+                            colorIndex = 6 + Math.floor(Math.random() * 3);
+                        }
+
+                        if (Math.random() > 0.97) {
+                            colorIndex = 15 + Math.floor(Math.random() * 3);
+                        }
+
+                        const color = palette[colorIndex % palette.length];
+                        for (let dy = 0; dy < blockSize && y + dy < h; dy++) {
+                            for (let dx = 0; dx < blockSize && x + dx < w; dx++) {
+                                const idx = ((y + dy) * w + (x + dx)) * 4;
+                                const noise = (Math.random() - 0.5) * 15;
+                                data[idx] = Math.max(0, Math.min(255, color[0] + noise));
+                                data[idx + 1] = Math.max(0, Math.min(255, color[1] + noise));
+                                data[idx + 2] = Math.max(0, Math.min(255, color[2] + noise));
+                                data[idx + 3] = 255;
+                            }
+                        }
+                    }
+                }
+
+                jumpscareCtx.putImageData(imageData, 0, 0);
+                for (let y = 0; y < h; y += 2) {
+                    jumpscareCtx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+                    jumpscareCtx.fillRect(0, y, w, 1);
+                }
+
+                const gradient = jumpscareCtx.createRadialGradient(w / 2, h / 2, 50, w / 2, h / 2, w * 0.6);
+                gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
+                gradient.addColorStop(0.7, 'rgba(255, 0, 0, 0)');
+                gradient.addColorStop(1, 'rgba(200, 0, 0, 0.2)');
+                jumpscareCtx.fillStyle = gradient;
+                jumpscareCtx.fillRect(0, 0, w, h);
+            }
+
+            // ============================================================
+            //  随机迷宫生成器
+            // ============================================================
+            function generateMaze(rows, cols) {
+                const grid = [];
+                for (let r = 0; r < rows; r++) {
+                    grid[r] = [];
+                    for (let c = 0; c < cols; c++) {
+                        grid[r][c] = 1;
+                    }
+                }
+
+                function carve(r, c) {
+                    grid[r][c] = 0;
+                    const dirs = [
+                        [-2, 0],
+                        [2, 0],
+                        [0, -2],
+                        [0, 2]
+                    ];
+                    for (let i = dirs.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+                    }
+                    for (const [dr, dc] of dirs) {
+                        const nr = r + dr;
+                        const nc = c + dc;
+                        if (nr > 0 && nr < rows - 1 && nc > 0 && nc < cols - 1 && grid[nr][nc] === 1) {
+                            grid[r + dr / 2][c + dc / 2] = 0;
+                            carve(nr, nc);
+                        }
+                    }
+                }
+
+                carve(1, 1);
+
+                // 额外开路
+                const extraOpenings = Math.floor((rows * cols) * 0.03);
+                for (let i = 0; i < extraOpenings; i++) {
+                    const r = 1 + Math.floor(Math.random() * (rows - 2));
+                    const c = 1 + Math.floor(Math.random() * (cols - 2));
+                    if (grid[r][c] === 1) {
+                        let neighbors = 0;
+                        const dirs = [
+                            [-1, 0],
+                            [1, 0],
+                            [0, -1],
+                            [0, 1]
+                        ];
+                        for (const [dr, dc] of dirs) {
+                            const nr = r + dr,
+                                nc = c + dc;
+                            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc] === 0) neighbors++;
+                        }
+                        if (neighbors >= 2) {
+                            grid[r][c] = 0;
+                        }
+                    }
+                }
+
+                return grid;
+            }
+
+            // ============================================================
+            //  随机位置生成
+            // ============================================================
+            function getRandomPosition(grid, rows, cols, avoidPositions = []) {
+                const candidates = [];
+                for (let r = 1; r < rows - 1; r++) {
+                    for (let c = 1; c < cols - 1; c++) {
+                        if (grid[r][c] === 0) {
+                            let avoid = false;
+                            for (const [ar, ac] of avoidPositions) {
+                                if (r === ar && c === ac) { avoid = true; break; }
+                            }
+                            if (!avoid) candidates.push([r, c]);
+                        }
+                    }
+                }
+                if (candidates.length === 0) return [1, 1];
+                const idx = Math.floor(Math.random() * candidates.length);
+                return candidates[idx];
+            }
+
+            function getRandomPositionWithDistance(grid, rows, cols, avoidPositions, minDist = 3) {
+                const candidates = [];
+                for (let r = 1; r < rows - 1; r++) {
+                    for (let c = 1; c < cols - 1; c++) {
+                        if (grid[r][c] === 0) {
+                            let tooClose = false;
+                            for (const [ar, ac] of avoidPositions) {
+                                const dist = Math.sqrt((r - ar) ** 2 + (c - ac) ** 2);
+                                if (dist < minDist) { tooClose = true; break; }
+                            }
+                            if (!tooClose) candidates.push([r, c]);
+                        }
+                    }
+                }
+                if (candidates.length === 0) return getRandomPosition(grid, rows, cols, avoidPositions);
+                const idx = Math.floor(Math.random() * candidates.length);
+                return candidates[idx];
+            }
+
+            // ============================================================
+            //  初始化随机地图
+            // ============================================================
+            function initRandomMap() {
+                maze = generateMaze(ROWS, COLS);
+
+                // 确保玩家起点 (1,1) 和周围可走
+                maze[1][1] = 0;
+                if (ROWS > 2 && COLS > 2) {
+                    maze[1][2] = 0;
+                    maze[2][1] = 0;
+                }
+
+                const playerPos = [1, 1];
+
+                // 钥匙位置
+                const keyPos = getRandomPositionWithDistance(maze, ROWS, COLS, [playerPos], 4);
+                keyRow = keyPos[0];
+                keyCol = keyPos[1];
+
+                // 门位置
+                const doorPos = getRandomPositionWithDistance(maze, ROWS, COLS, [playerPos, keyPos], 5);
+                doorRow = doorPos[0];
+                doorCol = doorPos[1];
+
+                // 实体位置
+                const entityPos = getRandomPositionWithDistance(maze, ROWS, COLS, [playerPos, keyPos, doorPos], 4);
+                entityY = entityPos[0];
+                entityX = entityPos[1];
+                entityTargetX = entityX;
+                entityTargetY = entityY;
+
+                playerY = 1;
+                playerX = 1;
+
+                hasKey = false;
+                doorOpened = false;
+                gameWin = false;
+                gameOver = false;
+                isChasing = false;
+                isSideways = false;
+                isSprinting = false;
+                stamina = MAX_STAMINA;
+
+                resetKeys();
+
+                updateStatus();
+                updateStaminaBar();
+                feedbackDiv.className = 'feedback';
+                feedbackDiv.innerText = '🟡 新迷宫生成！找到钥匙和出口！';
+                keyInput.value = '7';
+                resizeCanvas();
+            }
+
+            // ============================================================
+            //  重置按键状态
+            // ============================================================
+            function resetKeys() {
+                keys.up = false;
+                keys.down = false;
+                keys.left = false;
+                keys.right = false;
+                keys.shift = false;
+                keys.q = false;
+                keys.e = false;
+            }
+
+            // ============================================================
+            //  视野系统
+            // ============================================================
+
+            function hasLineOfSight(fromRow, fromCol, toRow, toCol) {
+                if (fromRow === toRow && fromCol === toCol) return true;
+
+                const dr = toRow - fromRow;
+                const dc = toCol - fromCol;
+                const steps = Math.max(Math.abs(dr), Math.abs(dc));
+                if (steps > VIEW_RADIUS) return false;
+
+                const rowStep = dr / steps;
+                const colStep = dc / steps;
+                let currentRow = fromRow;
+                let currentCol = fromCol;
+
+                for (let i = 0; i <= steps; i++) {
+                    const r = Math.round(currentRow);
+                    const c = Math.round(currentCol);
+                    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
+                    if (i > 0 && maze[r][c] === 1) return false;
+                    currentRow += rowStep;
+                    currentCol += colStep;
+                }
+                return true;
+            }
+
+            function isWithinCircle(row, col, centerRow, centerCol, radius) {
+                const dist = Math.sqrt((row - centerRow) ** 2 + (col - centerCol) ** 2);
+                return dist <= radius;
+            }
+
+            function isVisible(row, col) {
+                if (gameWin || gameOver) return true;
+                const pRow = Math.round(playerY);
+                const pCol = Math.round(playerX);
+                if (!isWithinCircle(row, col, pRow, pCol, VIEW_RADIUS)) return false;
+                return hasLineOfSight(pRow, pCol, row, col);
+            }
+
+            function isEntityVisible(eRow, eCol) {
+                if (gameWin || gameOver) return true;
+                const pRow = Math.round(playerY);
+                const pCol = Math.round(playerX);
+                const dist = Math.sqrt((eRow - pRow) ** 2 + (eCol - pCol) ** 2);
+                if (dist > VIEW_RADIUS * 1.3) return false;
+                return hasLineOfSight(pRow, pCol, Math.round(eRow), Math.round(eCol));
+            }
+
+            // ============================================================
+            //  实体 AI
+            // ============================================================
+
+            function euclideanDist(r1, c1, r2, c2) {
+                return Math.sqrt((r1 - r2) ** 2 + (c1 - c2) ** 2);
+            }
+
+            function hasDirectPath(fromR, fromC, toR, toC) {
+                const dr = toR - fromR;
+                const dc = toC - fromC;
+                const steps = Math.max(Math.abs(dr), Math.abs(dc));
+                if (steps === 0) return true;
+
+                const rowStep = dr / steps;
+                const colStep = dc / steps;
+                let currentR = fromR;
+                let currentC = fromC;
+
+                for (let i = 0; i <= steps; i++) {
+                    const r = Math.round(currentR);
+                    const c = Math.round(currentC);
+                    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
+                    if (i > 0 && maze[r][c] === 1) return false;
+                    currentR += rowStep;
+                    currentC += colStep;
+                }
+                return true;
+            }
+
+            function updateEntity() {
+                if (gameWin || gameOver) return;
+
+                const dist = euclideanDist(entityY, entityX, playerY, playerX);
+
+                if (dist <= ENTITY_TRIGGER_RADIUS && hasDirectPath(Math.round(entityY), Math.round(entityX), Math.round(
+                        playerY), Math.round(playerX))) {
+                    isChasing = true;
+                    entityStatusDiv.classList.add('danger');
+                    entityAlertSpan.textContent = '⚠️';
+                } else {
+                    isChasing = false;
+                    entityStatusDiv.classList.remove('danger');
+                    entityAlertSpan.textContent = '●';
+                }
+
+                if (!isChasing) return;
+
+                const directions = [
+                    { dr: -1, dc: 0 },
+                    { dr: 1, dc: 0 },
+                    { dr: 0, dc: -1 },
+                    { dr: 0, dc: 1 }
+                ];
+
+                let bestDist = Infinity;
+                let bestMove = null;
+
+                for (const dir of directions) {
+                    const newR = Math.round(entityY) + dir.dr;
+                    const newC = Math.round(entityX) + dir.dc;
+                    if (newR < 0 || newR >= ROWS || newC < 0 || newC >= COLS) continue;
+                    if (maze[newR][newC] === 1) continue;
+
+                    const newDist = euclideanDist(newR, newC, playerY, playerX);
+                    if (newDist < bestDist) {
+                        bestDist = newDist;
+                        bestMove = { row: newR, col: newC };
+                    }
+                }
+
+                if (bestMove) {
+                    entityTargetX = bestMove.col;
+                    entityTargetY = bestMove.row;
+
+                    if (Math.round(entityY) === Math.round(playerY) && Math.round(entityX) === Math.round(playerX)) {
+                        triggerJumpscare();
+                    }
+                }
+            }
+
+            // ============================================================
+            //  突脸动画
+            // ============================================================
+
+            function triggerJumpscare() {
+                gameOver = true;
+                generateSkinStealer();
+                jumpscareOverlay.classList.add('active');
+                feedbackDiv.className = 'feedback danger';
+                feedbackDiv.innerText = '☠ 你死了... 点击"重新进入"再试一次。';
+                updateStatus();
+                resetKeys();
+            }
+
+            function hideJumpscare() {
+                jumpscareOverlay.classList.remove('active');
+            }
+
+            // ============================================================
+            //  核心功能函数
+            // ============================================================
+
+            function resetGame() {
+                initRandomMap();
+                hideJumpscare();
+                resetKeys();
+                updateStatus();
+                updateStaminaBar();
+                feedbackDiv.className = 'feedback';
+                feedbackDiv.innerText = '🟡 新迷宫生成！找到钥匙和出口！';
+            }
+
+            function updateStatus() {
+                keyStatusSpan.innerText = hasKey ? '✅' : '❌';
+                doorStatusSpan.innerText = gameWin ? '✨' : (doorOpened ? '🔓' : '🔒');
+                if (gameOver) {
+                    entityAlertSpan.textContent = '💀';
+                    entityStatusDiv.classList.add('danger');
+                }
+                if (isSideways) {
+                    sideStatusDiv.classList.add('sideways');
+                    sideAlertSpan.textContent = '🧍';
+                } else {
+                    sideStatusDiv.classList.remove('sideways');
+                    sideAlertSpan.textContent = '●';
+                }
+                if (isSprinting && stamina > 0) {
+                    document.querySelector('.stamina-bar-container').style.borderColor = '#ffaa44';
+                } else {
+                    document.querySelector('.stamina-bar-container').style.borderColor = '#4a3a20';
+                }
+            }
+
+            function updateStaminaBar() {
+                const percent = Math.max(0, (stamina / MAX_STAMINA) * 100);
+                staminaFill.style.width = percent + '%';
+                if (percent < 25) {
+                    staminaFill.classList.add('low');
+                } else {
+                    staminaFill.classList.remove('low');
+                }
+            }
+
+            function isWalkable(row, col) {
+                if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return false;
+                return maze[row][col] === 0;
+            }
+
+            // ============================================================
+            //  速度计算
+            // ============================================================
+            function getPlayerSpeed() {
+                let speed = PLAYER_BASE_SPEED;
+                if (isSideways) {
+                    speed = PLAYER_SIDEWAYS_SPEED;
+                } else if (isSprinting && stamina > 0) {
+                    speed = PLAYER_BASE_SPEED * PLAYER_SPRINT_MULTIPLIER;
+                }
+                return speed;
+            }
+
+            function getEntitySpeed() {
+                return PLAYER_BASE_SPEED * ENTITY_SPEED_MULTIPLIER;
+            }
+
+            // ============================================================
+            //  移动逻辑
+            // ============================================================
+
+            function movePlayer(dRow, dCol) {
+                if (gameWin || gameOver) return;
+
+                const speed = getPlayerSpeed();
+                const step = speed / 12;
+
+                let newY = playerY + dRow * step;
+                let newX = playerX + dCol * step;
+
+                const checkRow = Math.round(newY);
+                const checkCol = Math.round(newX);
+
+                if (isWalkable(checkRow, checkCol)) {
+                    playerY = newY;
+                    playerX = newX;
+                } else {
+                    if (isWalkable(Math.round(playerY + dRow * step), Math.round(playerX))) {
+                        playerY += dRow * step;
+                    } else if (isWalkable(Math.round(playerY), Math.round(playerX + dCol * step))) {
+                        playerX += dCol * step;
+                    }
+                }
+
+                playerY = Math.max(0.5, Math.min(ROWS - 0.5, playerY));
+                playerX = Math.max(0.5, Math.min(COLS - 0.5, playerX));
+
+                const pRow = Math.round(playerY);
+                const pCol = Math.round(playerX);
+
+                if (pRow === keyRow && pCol === keyCol && !hasKey && !gameWin) {
+                    hasKey = true;
+                    feedbackDiv.className = 'feedback correct';
+                    feedbackDiv.innerText = '🗝️ 你找到了层级钥匙！ 快去出口吧！';
+                    updateStatus();
+                }
+
+                if (pRow === doorRow && pCol === doorCol && hasKey && !doorOpened && !gameWin) {
+                    doorOpened = true;
+                    feedbackDiv.className = 'feedback correct';
+                    feedbackDiv.innerText = '🚪 出口门已解锁！ 输入 7 进入下一层！';
+                    updateStatus();
+                }
+
+                if (pRow === doorRow && pCol === doorCol && doorOpened && !gameWin) {
+                    feedbackDiv.className = 'feedback';
+                    feedbackDiv.innerText = '🔓 门已打开，输入 7 进入下一层级！';
+                }
+
+                if (Math.round(playerY) === Math.round(entityY) && Math.round(playerX) === Math.round(entityX)) {
+                    triggerJumpscare();
+                }
+            }
+
+            // ============================================================
+            //  绘制迷宫
+            // ============================================================
+
+            function drawMaze() {
+                if (!maze || maze.length === 0) return;
+                
+                const size = canvas.width / COLS;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const colors = {
+                    wallDark: '#2a2410',
+                    wallLight: '#4a3a1a',
+                    wallBorder: '#1a1408',
+                    floorBase: '#c4b06a',
+                    floorLight: '#d4c080',
+                    floorDark: '#b49a5a',
+                    mold: '#6a7a3a',
+                    moldLight: '#8a9a4a'
+                };
+
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        const x = c * size,
+                            y = r * size;
+                        const val = maze[r][c];
+                        const visible = isVisible(r, c);
+
+                        if (!visible && !gameWin && !gameOver) {
+                            ctx.fillStyle = '#050302';
+                            ctx.fillRect(x, y, size, size);
+                            continue;
+                        }
+
+                        if (val === 1) {
+                            ctx.fillStyle = colors.wallDark;
+                            ctx.fillRect(x, y, size, size);
+                            ctx.fillStyle = colors.wallLight;
+                            ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
+                            ctx.strokeStyle = colors.wallBorder;
+                            ctx.lineWidth = 1;
+                            ctx.strokeRect(x + 1, y + 1, size - 2, size - 2);
+                        } else {
+                            ctx.fillStyle = colors.floorBase;
+                            ctx.fillRect(x, y, size, size);
+                            ctx.fillStyle = colors.floorLight;
+                            ctx.fillRect(x + 3, y + 3, size - 6, size - 6);
+
+                            const moldSeed = (r * 7 + c * 13) % 5;
+                            if (moldSeed < 2) {
+                                ctx.fillStyle = moldSeed === 0 ? colors.mold : colors.moldLight;
+                                ctx.globalAlpha = 0.3 + Math.random() * 0.2;
+                                ctx.beginPath();
+                                ctx.arc(x + size * (0.2 + Math.random() * 0.6),
+                                    y + size * (0.2 + Math.random() * 0.6),
+                                    size * (0.08 + Math.random() * 0.12), 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.globalAlpha = 1;
+                            }
+                            if ((r + c) % 2 === 0) {
+                                ctx.strokeStyle = '#8a7a4a';
+                                ctx.globalAlpha = 0.15;
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.moveTo(x + 2, y + size - 2);
+                                ctx.lineTo(x + size - 2, y + 2);
+                                ctx.stroke();
+                                ctx.globalAlpha = 1;
+                            }
+                        }
+                    }
+                }
+
+                // 实体平滑移动
+                const entitySpeed = getEntitySpeed();
+                const entityStep = 0.08 * entitySpeed / PLAYER_BASE_SPEED;
+                const entityDiffX = entityTargetX - entityX;
+                const entityDiffY = entityTargetY - entityY;
+                entityX += entityDiffX * entityStep;
+                entityY += entityDiffY * entityStep;
+                if (Math.abs(entityDiffX) < 0.01) entityX = entityTargetX;
+                if (Math.abs(entityDiffY) < 0.01) entityY = entityTargetY;
+
+                // 绘制实体
+                const eRow = Math.round(entityY);
+                const eCol = Math.round(entityX);
+                const entityVis = isEntityVisible(eRow, eCol) || isChasing || gameOver;
+
+                if (entityVis && !gameWin) {
+                    const ex = entityX * size,
+                        ey = entityY * size;
+                    ctx.save();
+                    ctx.shadowColor = isChasing ? '#ff0000' : '#000000';
+                    ctx.shadowBlur = isChasing ? 30 : 15;
+
+                    ctx.fillStyle = '#0a0a0a';
+                    ctx.beginPath();
+                    ctx.arc(ex + size / 2, ey + size / 2, size * 0.2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = '#ff0000';
+                    ctx.fillStyle = '#ff0000';
+                    ctx.beginPath();
+                    ctx.arc(ex + size / 2 - 6, ey + size / 2 - 4, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(ex + size / 2 + 6, ey + size / 2 - 4, 3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.shadowBlur = 5;
+                    ctx.shadowColor = '#000000';
+                    ctx.strokeStyle = '#0a0a0a';
+                    ctx.lineWidth = 2;
+                    const legLength = size * 0.35;
+                    const angles = [0, 45, 90, 135, 180, 225, 270, 315];
+                    for (const angle of angles) {
+                        const rad = angle * Math.PI / 180;
+                        ctx.beginPath();
+                        ctx.moveTo(ex + size / 2 + Math.cos(rad) * size * 0.15,
+                            ey + size / 2 + Math.sin(rad) * size * 0.15);
+                        ctx.lineTo(ex + size / 2 + Math.cos(rad) * legLength,
+                            ey + size / 2 + Math.sin(rad) * legLength);
+                        ctx.stroke();
+                    }
+
+                    if (isChasing) {
+                        const glow = ctx.createRadialGradient(ex + size / 2, ey + size / 2, 2, ex + size / 2, ey + size / 2,
+                            size * 1.5);
+                        glow.addColorStop(0, 'rgba(255, 0, 0, 0.2)');
+                        glow.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                        ctx.fillStyle = glow;
+                        ctx.fillRect(ex - size * 1.5, ey - size * 1.5, size * 4, size * 4);
+                    }
+                    ctx.restore();
+                }
+
+                // 绘制钥匙
+                const keyVisible = isVisible(keyRow, keyCol);
+                const kx = keyCol * size,
+                    ky = keyRow * size;
+                if (!hasKey && !gameWin && !gameOver && keyVisible) {
+                    ctx.font = `${Math.min(size*0.6, 24)}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#b49a4a';
+                    ctx.shadowColor = '#8a7a3a';
+                    ctx.shadowBlur = 15;
+                    ctx.fillText('🗝️', kx + size / 2, ky + size / 2 - 2);
+                    ctx.shadowBlur = 0;
+                }
+
+                // 绘制门
+                const doorVisible = isVisible(doorRow, doorCol);
+                const dx = doorCol * size,
+                    dy = doorRow * size;
+                if (!gameWin && !gameOver && doorVisible) {
+                    ctx.font = `${Math.min(size*0.7, 28)}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.shadowColor = doorOpened ? '#d4c060' : '#8a7a3a';
+                    ctx.shadowBlur = doorOpened ? 40 : 15;
+                    ctx.fillStyle = doorOpened ? '#d4c060' : '#b49a5a';
+                    ctx.fillText('🚪', dx + size / 2, dy + size / 2 + 2);
+                    ctx.shadowBlur = 0;
+                    if (doorOpened) {
+                        ctx.fillStyle = '#d4c060';
+                        ctx.font = `${Math.min(size*0.4, 16)}px sans-serif`;
+                        ctx.fillText('✨', dx + size / 2 + 14, dy + size / 2 - 10);
+                    }
+                } else if (gameWin) {
+                    ctx.font = `${Math.min(size*0.8, 32)}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.shadowColor = '#d4c060';
+                    ctx.shadowBlur = 60;
+                    ctx.fillStyle = '#f7e8b0';
+                    ctx.fillText('✨', dx + size / 2, dy + size / 2);
+                    ctx.shadowBlur = 0;
+                }
+
+                // 绘制玩家
+                if (!gameOver) {
+                    const px = playerX * size,
+                        py = playerY * size;
+
+                    if (isSprinting && stamina > 0) {
+                        ctx.shadowColor = '#ffaa44';
+                        ctx.shadowBlur = 40;
+                        const sprintGlow = ctx.createRadialGradient(px + size / 2, py + size / 2, 2, px + size / 2, py + size /
+                            2, size * 0.8);
+                        sprintGlow.addColorStop(0, 'rgba(255, 170, 68, 0.15)');
+                        sprintGlow.addColorStop(1, 'rgba(255, 170, 68, 0)');
+                        ctx.fillStyle = sprintGlow;
+                        ctx.fillRect(px - size, py - size, size * 3, size * 3);
+                    }
+
+                    if (isSideways) {
+                        ctx.shadowColor = '#66ccff';
+                        ctx.shadowBlur = 30;
+                        ctx.strokeStyle = 'rgba(100, 200, 255, 0.3)';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(px + size / 2, py + size / 2 - 2, size * 0.3, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+
+                    ctx.shadowColor = isSprinting && stamina > 0 ? '#ffaa44' : '#c0a040';
+                    ctx.shadowBlur = isSprinting && stamina > 0 ? 30 : 20;
+                    ctx.fillStyle = isSprinting && stamina > 0 ? '#ffaa44' : (isSideways ? '#88ccdd' : '#d4a040');
+                    ctx.beginPath();
+                    ctx.arc(px + size / 2, py + size / 2 - 2, size * 0.25, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#f0d090';
+                    ctx.beginPath();
+                    ctx.arc(px + size / 2 - 4, py + size / 2 - 8, Math.min(4, size*0.12), 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(px + size / 2 + 4, py + size / 2 - 8, Math.min(4, size*0.12), 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = '#0a0805';
+                    ctx.beginPath();
+                    ctx.arc(px + size / 2 - Math.min(5, size*0.15), py + size / 2 - Math.min(10, size*0.25), Math.min(2, size*
+                        0.06), 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(px + size / 2 + Math.min(5, size*0.15), py + size / 2 - Math.min(10, size*0.25), Math.min(2, size*
+                        0.06), 0, Math.PI * 2);
+                    ctx.fill();
+
+                    if (!gameWin) {
+                        const gradient = ctx.createRadialGradient(
+                            px + size / 2, py + size / 2, size * 0.1,
+                            px + size / 2, py + size / 2, size * (VIEW_RADIUS + 0.5)
+                        );
+                        gradient.addColorStop(0, 'rgba(255, 220, 160, 0.10)');
+                        gradient.addColorStop(0.5, 'rgba(255, 200, 130, 0.04)');
+                        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+
+                    if (!gameWin && !gameOver) {
+                        ctx.strokeStyle = 'rgba(255, 255, 200, 0.06)';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([4, 8]);
+                        ctx.beginPath();
+                        ctx.arc(px + size / 2, py + size / 2, size * VIEW_RADIUS, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                }
+            }
+
+            // ============================================================
+            //  键盘输入处理
+            // ============================================================
+
+            function handleKeyDown(e) {
+                const key = e.key;
+                const controlKeys = ['Shift', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+                    'w', 'W', 'A', 'a', 's', 'S', 'd', 'D', 'q', 'Q', 'e', 'E'
+                ];
+                if (controlKeys.includes(key)) {
+                    e.preventDefault();
+                }
+
+                if (key === 'Shift') {
+                    keys.shift = true;
+                    isSprinting = true;
+                    if (stamina > 0) {
+                        document.querySelector('.stamina-bar-container').style.borderColor = '#ffaa44';
+                    }
+                    updateStatus();
+                    return;
+                }
+
+                if (key === 'q' || key === 'Q') {
+                    keys.q = true;
+                    isSideways = true;
+                    sideStatusDiv.classList.add('sideways');
+                    sideAlertSpan.textContent = '🧍';
+                    updateStatus();
+                    feedbackDiv.className = 'feedback';
+                    feedbackDiv.innerText = '🧍 侧身移动中... 速度变慢了！';
+                    return;
+                }
+                if (key === 'e' || key === 'E') {
+                    keys.e = true;
+                    isSideways = false;
+                    sideStatusDiv.classList.remove('sideways');
+                    sideAlertSpan.textContent = '●';
+                    updateStatus();
+                    feedbackDiv.className = 'feedback';
+                    feedbackDiv.innerText = '🧍 恢复正常行走速度。';
+                    return;
+                }
+
+                if (gameWin || gameOver) {
+                    if (gameOver) {
+                        feedbackDiv.className = 'feedback danger';
+                        feedbackDiv.innerText = '☠ 你死了... 点击"重来"再试一次。';
+                    }
+                    return;
+                }
+
+                if (key === 'ArrowUp' || key === 'w' || key === 'W') keys.up = true;
+                if (key === 'ArrowDown' || key === 's' || key === 'S') keys.down = true;
+                if (key === 'ArrowLeft' || key === 'a' || key === 'A') keys.left = true;
+                if (key === 'ArrowRight' || key === 'd' || key === 'D') keys.right = true;
+            }
+
+            function handleKeyUp(e) {
+                const key = e.key;
+                const controlKeys = ['Shift', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+                    'w', 'W', 'A', 'a', 's', 'S', 'd', 'D', 'q', 'Q', 'e', 'E'
+                ];
+                if (controlKeys.includes(key)) {
+                    e.preventDefault();
+                }
+
+                if (key === 'Shift') {
+                    keys.shift = false;
+                    isSprinting = false;
+                    document.querySelector('.stamina-bar-container').style.borderColor = '#4a3a20';
+                    updateStatus();
+                    return;
+                }
+
+                if (key === 'q' || key === 'Q') {
+                    keys.q = false;
+                    return;
+                }
+                if (key === 'e' || key === 'E') {
+                    keys.e = false;
+                    return;
+                }
+
+                if (key === 'ArrowUp' || key === 'w' || key === 'W') keys.up = false;
+                if (key === 'ArrowDown' || key === 's' || key === 'S') keys.down = false;
+                if (key === 'ArrowLeft' || key === 'a' || key === 'A') keys.left = false;
+                if (key === 'ArrowRight' || key === 'd' || key === 'D') keys.right = false;
+            }
+
+            function handleBlur() {
+                resetKeys();
+                isSprinting = false;
+                isSideways = false;
+                document.querySelector('.stamina-bar-container').style.borderColor = '#4a3a20';
+                sideStatusDiv.classList.remove('sideways');
+                sideAlertSpan.textContent = '●';
+                updateStatus();
+            }
+
+            // ============================================================
+            //  更新逻辑
+            // ============================================================
+
+            function updateStamina(deltaTime) {
+                if (gameWin || gameOver) return;
+
+                if (isSprinting && stamina > 0) {
+                    stamina -= STAMINA_DRAIN_RATE * deltaTime;
+                    if (stamina < 0) stamina = 0;
+                    if (stamina <= 0) {
+                        isSprinting = false;
+                        keys.shift = false;
+                        document.querySelector('.stamina-bar-container').style.borderColor = '#4a3a20';
+                        updateStatus();
+                        feedbackDiv.className = 'feedback';
+                        feedbackDiv.innerText = '⚡ 体力耗尽！无法继续疾跑。';
+                    }
+                } else {
+                    stamina += STAMINA_REGEN_RATE * deltaTime;
+                    if (stamina > MAX_STAMINA) stamina = MAX_STAMINA;
+                }
+
+                updateStaminaBar();
+            }
+
+            function updateMovement() {
+                if (gameWin || gameOver) return;
+
+                const isMoving = keys.up || keys.down || keys.left || keys.right;
+                if (!isMoving) return;
+
+                let dRow = 0,
+                    dCol = 0;
+                if (keys.up) dRow = -1;
+                if (keys.down) dRow = 1;
+                if (keys.left) dCol = -1;
+                if (keys.right) dCol = 1;
+
+                if (dRow !== 0 && dCol !== 0) {
+                    dRow *= 0.707;
+                    dCol *= 0.707;
+                }
+
+                movePlayer(dRow, dCol);
+            }
+
+            // ============================================================
+            //  游戏循环
+            // ============================================================
+
+            let lastTime = 0;
+            let lastEntityUpdate = 0;
+            const ENTITY_UPDATE_INTERVAL = 1000 / (PLAYER_BASE_SPEED * ENTITY_SPEED_MULTIPLIER);
+
+            function gameLoop(timestamp) {
+                const deltaTime = Math.min((timestamp - lastTime) / 1000, 0.05);
+                lastTime = timestamp;
+
+                updateStamina(deltaTime);
+
+                if (!gameWin && !gameOver) {
+                    if (timestamp - lastEntityUpdate > ENTITY_UPDATE_INTERVAL) {
+                        updateEntity();
+                        lastEntityUpdate = timestamp;
+                    }
+                }
+
+                updateMovement();
+
+                const entitySpeed = getEntitySpeed();
+                const entityStep = 0.08 * entitySpeed / PLAYER_BASE_SPEED;
+                const entityDiffX = entityTargetX - entityX;
+                const entityDiffY = entityTargetY - entityY;
+                entityX += entityDiffX * entityStep;
+                entityY += entityDiffY * entityStep;
+                if (Math.abs(entityDiffX) < 0.01) entityX = entityTargetX;
+                if (Math.abs(entityDiffY) < 0.01) entityY = entityTargetY;
+
+                drawMaze();
+                requestAnimationFrame(gameLoop);
+            }
+
+            // ============================================================
+            //  事件绑定
+            // ============================================================
+
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+            window.addEventListener('blur', handleBlur);
+            window.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    handleBlur();
+                }
+            });
+            window.addEventListener('resize', resizeCanvas);
+
+            function handleCanvasClick(e) {
+                if (gameWin || gameOver) {
+                    if (gameOver) {
+                        feedbackDiv.className = 'feedback danger';
+                        feedbackDiv.innerText = '☠ 你死了... 点击"重来"再试一次。';
+                    }
+                    return;
+                }
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                let clientX, clientY;
+                if (e.touches) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                    e.preventDefault();
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+                const x = (clientX - rect.left) * scaleX;
+                const y = (clientY - rect.top) * scaleY;
+                const col = Math.floor(x / (canvas.width / COLS));
+                const row = Math.floor(y / (canvas.height / ROWS));
+                if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
+                if (!isWalkable(row, col)) return;
+
+                const dist = Math.sqrt((row - playerY) ** 2 + (col - playerX) ** 2);
+                if (dist > 5) {
+                    feedbackDiv.className = 'feedback wrong';
+                    feedbackDiv.innerText = '⛔ 太远了！走过去吧。';
+                    return;
+                }
+
+                const steps = Math.max(Math.abs(row - playerY), Math.abs(col - playerX));
+                if (steps === 0) return;
+                const stepY = (row - playerY) / steps;
+                const stepX = (col - playerX) / steps;
+
+                let moved = false;
+                for (let i = 0; i < steps; i++) {
+                    const nextY = playerY + stepY;
+                    const nextX = playerX + stepX;
+                    const checkRow = Math.round(nextY);
+                    const checkCol = Math.round(nextX);
+                    if (isWalkable(checkRow, checkCol)) {
+                        playerY = nextY;
+                        playerX = nextX;
+                        moved = true;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (moved) {
+                    playerY = Math.max(0.5, Math.min(ROWS - 0.5, playerY));
+                    playerX = Math.max(0.5, Math.min(COLS - 0.5, playerX));
+
+                    const pRow = Math.round(playerY);
+                    const pCol = Math.round(playerX);
+                    if (pRow === keyRow && pCol === keyCol && !hasKey && !gameWin) {
+                        hasKey = true;
+                        feedbackDiv.className = 'feedback correct';
+                        feedbackDiv.innerText = '🗝️ 你找到了层级钥匙！ 快去出口吧！';
+                        updateStatus();
+                    }
+                    if (pRow === doorRow && pCol === doorCol && hasKey && !doorOpened && !gameWin) {
+                        doorOpened = true;
+                        feedbackDiv.className = 'feedback correct';
+                        feedbackDiv.innerText = '🚪 出口门已解锁！ 输入 7 进入下一层！';
+                        updateStatus();
+                    }
+                }
+            }
+
+            function handleSubmit() {
+                if (gameWin) {
+                    feedbackDiv.className = 'feedback levelup';
+                    feedbackDiv.innerText = '✨ 你已进入下一层级！点击"重来"再次体验。';
+                    return;
+                }
+                if (gameOver) {
+                    feedbackDiv.className = 'feedback danger';
+                    feedbackDiv.innerText = '☠ 你死了... 点击"重来"再试一次。';
+                    return;
+                }
+                const inputVal = keyInput.value.trim();
+                if (inputVal === '') {
+                    feedbackDiv.className = 'feedback wrong';
+                    feedbackDiv.innerText = '⚠️ 请输入钥匙编号 (提示: 7)';
+                    return;
+                }
+                const correctAnswer = '7';
+
+                if (inputVal === correctAnswer && hasKey && doorOpened) {
+                    gameWin = true;
+                    doorOpened = true;
+                    updateStatus();
+                    feedbackDiv.className = 'feedback levelup';
+                    feedbackDiv.innerText = '🎉 你成功进入了 Level 1！ 逃离了 Level 0！';
+                } else if (inputVal === correctAnswer && (!hasKey || !doorOpened)) {
+                    feedbackDiv.className = 'feedback wrong';
+                    feedbackDiv.innerText = '🔍 你还没拿到钥匙或门未打开，继续探索！';
+                } else {
+                    feedbackDiv.className = 'feedback wrong';
+                    feedbackDiv.innerText = '❌ 错误的钥匙编号... 应该是 7！';
+                }
+            }
+
+            // ============================================================
+            //  绑定监听器 & 初始化
+            // ============================================================
+
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('touchstart', handleCanvasClick, { passive: false });
+            submitBtn.addEventListener('click', handleSubmit);
+            keyInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSubmit();
+                }
+            });
+            resetBtn.addEventListener('click', function() {
+                resetGame();
+            });
+            jumpscareRestart.addEventListener('click', function() {
+                resetGame();
+            });
+
+            window.addEventListener('keydown', function(e) {
+                if (['Shift', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+                        'w', 'W', 'A', 'a', 's', 'S', 'd', 'D',
+                        'q', 'Q', 'e', 'E'
+                    ].includes(e.key)) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            // ============================================================
+            //  启动游戏
+            // ============================================================
+            initRandomMap();
+            feedbackDiv.innerText = '🟡 新迷宫生成！找到钥匙和出口！';
+            requestAnimationFrame(gameLoop);
+        })();
+    </script>
+</body>
+</html>
